@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		B393E73E2D9B9E42002F16D0 /* BubblePopApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B393E73D2D9B9E42002F16D0 /* BubblePopApp.swift */; };
-		B393E7402D9B9E42002F16D0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B393E73F2D9B9E42002F16D0 /* ContentView.swift */; };
 		B393E7422D9B9E48002F16D0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B393E7412D9B9E48002F16D0 /* Assets.xcassets */; };
 		B393E7452D9B9E48002F16D0 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B393E7442D9B9E48002F16D0 /* Preview Assets.xcassets */; };
 		B393E74F2D9B9E49002F16D0 /* BubblePopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B393E74E2D9B9E49002F16D0 /* BubblePopTests.swift */; };
@@ -44,7 +43,6 @@
 /* Begin PBXFileReference section */
 		B393E73A2D9B9E42002F16D0 /* BubblePop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BubblePop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B393E73D2D9B9E42002F16D0 /* BubblePopApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BubblePopApp.swift; sourceTree = "<group>"; };
-		B393E73F2D9B9E42002F16D0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B393E7412D9B9E48002F16D0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B393E7442D9B9E48002F16D0 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B393E74A2D9B9E49002F16D0 /* BubblePopTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BubblePopTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -113,7 +111,6 @@
 			children = (
 				B393E76D2D9CF6E0002F16D0 /* GameSettingsView.swift */,
 				B393E73D2D9B9E42002F16D0 /* BubblePopApp.swift */,
-				B393E73F2D9B9E42002F16D0 /* ContentView.swift */,
 				B393E7412D9B9E48002F16D0 /* Assets.xcassets */,
 				B393E7432D9B9E48002F16D0 /* Preview Content */,
 				B393E7672D9B9F8C002F16D0 /* WelcomeView.swift */,
@@ -282,7 +279,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				B393E7762D9D40C2002F16D0 /* GameOverView.swift in Sources */,
-				B393E7402D9B9E42002F16D0 /* ContentView.swift in Sources */,
 				B393E76C2D9BBBA9002F16D0 /* Bubble.swift in Sources */,
 				B393E7682D9B9F8C002F16D0 /* WelcomeView.swift in Sources */,
 				B393E7722D9CF88D002F16D0 /* HighScoreViewModel.swift in Sources */,

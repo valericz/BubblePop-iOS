@@ -9,7 +9,7 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         VStack {
-            NavigationLink(destination: GameSettingsView()) {
+            NavigationLink(destination: GameSettingsView(playerName: playerName: $playerName)) {
                 Text("New Game")
             }
 

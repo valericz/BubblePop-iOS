@@ -39,7 +39,7 @@ struct WelcomeView: View {
                         .cornerRadius(10)
                 }
                 .disabled(playerName.isEmpty)
-            NavigationLink(destination: GameSettingsView()){
+            NavigationLink(destination: GameSettingsView(playerName: $playerName)){
                 Text("Settings")
                     .font(.title2)
                     .padding()

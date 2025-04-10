@@ -112,7 +112,9 @@ struct GameSettingsView: View {
                     gameTime: max(Int(countdownValue), minTime),
                     maxBubbles: max(Int(numberOfBubbles), minBubbles)
                 )
-            ) {
+            )
+            
+            {
                 Text("Start Game")
                     .frame(minWidth: 200)
                     .padding()
@@ -128,7 +130,13 @@ struct GameSettingsView: View {
                     .font(.caption)
                     .padding(.top, 4)
             }
+            
         }
         .padding()
     }
+}
+
+
+#Preview {
+    GameSettingsView(playerName: .constant("Test Player"))
 }

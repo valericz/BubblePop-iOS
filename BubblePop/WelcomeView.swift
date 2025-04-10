@@ -12,21 +12,19 @@ struct WelcomeView: View {
     @State private var showGameView = false
     var gameTime: Int = 60
     var maxBubbles: Int = 15
+    
     var body: some View {
-        NavigationStack{
-            VStack(spacing:20){
+        NavigationStack {
+            VStack(spacing: 20) {
                 Text("Welcode to BubblePop🫧")
                     .font(.custom("HelveticaNeue-Bold", size: 20))
                     .bold()
                 
-                }
-                
-                TextField("Please enter your name:",text: $playerName)
+                TextField("Please enter your name:", text: $playerName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.horizontal,40)
-          
+                    .padding(.horizontal, 40)
                 
-                Button(action:{
+                Button(action: {
                     if !playerName.isEmpty {
                         showGameView = true
                     }
@@ -34,28 +32,40 @@ struct WelcomeView: View {
                     Text("Start Game🚀")
                         .foregroundColor(.white)
                         .padding()
-                        .frame(width:200, height:50)
-                        .background(playerName.isEmpty ? Color.gray:Color.blue)
+                        .frame(width: 200, height: 50)
+                        .background(playerName.isEmpty ? Color.gray : Color.blue)
                         .cornerRadius(10)
                 }
                 .disabled(playerName.isEmpty)
-            NavigationLink(destination: GameSettingsView(playerName: $playerName)){
-                Text("Settings")
-                    .font(.title2)
-                    .padding()
-                    .background(playerName.isEmpty ? Color.gray:Color.purple)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                
+                NavigationLink(destination: GameSettingsView(playerName: $playerName)) {
+                    Text("Settings")
+                        .font(.title2)
+                        .padding()
+                        .background(playerName.isEmpty ? Color.gray : Color.purple)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
+                .disabled(playerName.isEmpty)
             }
-            .disabled(playerName.isEmpty)
+            .fullScreenCover(isPresented: $showGameView) {
+                GameView(playerName: playerName, gameTime: gameTime, maxBubbles: maxBubbles)
             }
-            .fullScreenCover(isPresented:$showGameView){
-                GameView(playerName:playerName, gameTime:gameTime ,maxBubbles: maxBubbles)
+            .onAppear {
+                // Set up notification observer for returning to main menu
+                NotificationCenter.default.addObserver(
+                    forName: NSNotification.Name("ReturnToMainMenu"),
+                    object: nil,
+                    queue: .main
+                ) { _ in
+                    // Reset the welcome view
+                    playerName = ""
+                    showGameView = false
+                }
             }
-            
-            
         }
     }
+}
 
 #Preview {
     WelcomeView()

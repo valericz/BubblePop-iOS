@@ -7,10 +7,11 @@ struct GameView: View {
     @State private var score: Int = 0
     @State private var isGameOver = false
     @State private var lastPoppedColor: BubbleColor?
-    @State private var showGameOver = false
     @State private var gameAreaSize: CGSize = .zero
     @State private var isViewAppeared = false
     @State private var resetCount = 0 // Add a counter to force resets
+    @Environment(\.dismiss) private var dismiss // Use the standard dismiss environment
+    
     var playerName: String
     var gameTime: Int
     var maxBubbles: Int
@@ -25,6 +26,24 @@ struct GameView: View {
     
     var body: some View {
         VStack {
+            HStack {
+                Button(action: {
+                    // Return to main menu
+                    NotificationCenter.default.post(name: NSNotification.Name("ReturnToMainMenu"), object: nil)
+                    dismiss()
+                }) {
+                    Image(systemName: "house.fill")
+                        .font(.title2)
+                        .padding(10)
+                        .foregroundColor(.white)
+                        .background(Color.blue)
+                        .clipShape(Circle())
+                }
+                .padding(.leading)
+                
+                Spacer()
+            }
+            
             Text("Hello, \(playerName)!")
                 .font(.largeTitle)
                 .padding()
@@ -128,7 +147,6 @@ struct GameView: View {
         score = 0
         remainingTime = gameTime
         isGameOver = false
-        showGameOver = false
         lastPoppedColor = nil
         bubbles = []
         
@@ -163,7 +181,6 @@ struct GameView: View {
             if remainingTime == 0 {
                 timer?.invalidate()
                 isGameOver = true
-                showGameOver = true
             }
         }
     }

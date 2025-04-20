@@ -41,8 +41,16 @@ struct HighScoreView: View {
             }
             
             Button("Return to Main Menu") {
-                // This will close all modal presentations and return to the main menu
-                returnToMainMenu = true
+                // Post notification first
+                NotificationCenter.default.post(name: NSNotification.Name("ReturnToMainMenu"), object: nil)
+                
+                // Then dismiss both this view and the GameOverView
+                dismiss()
+                
+                // Post the notification again with a slight delay to ensure it's received
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NotificationCenter.default.post(name: NSNotification.Name("ReturnToMainMenu"), object: nil)
+                }
             }
             .padding()
             .background(Color.blue)
@@ -52,22 +60,6 @@ struct HighScoreView: View {
         }
         .onAppear {
             viewModel.loadScores()
-        }
-        .fullScreenCover(isPresented: $returnToMainMenu) {
-            // This is a trick to return to the main view - we present a full screen cover
-            // that immediately dismisses itself and everything else
-            ZStack {
-                Color.clear
-                    .onAppear {
-                        // Dismiss everything and return to main menu
-                        // We need to wait a tiny bit for the view to appear first
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            NotificationCenter.default.post(name: NSNotification.Name("ReturnToMainMenu"), object: nil)
-                            dismiss()
-                        }
-                    }
-            }
-            .ignoresSafeArea()
         }
     }
 }

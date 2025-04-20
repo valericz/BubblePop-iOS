@@ -29,20 +29,30 @@ enum BubbleColor: CaseIterable {
         case .black: return .black
         }
     }
-    
+    var imageName: String {
+            switch self {
+            case .red: return "redBubble"
+            case .pink: return "pinkBubble"
+            case .green: return "greenBubble"
+            case .blue: return "blueBubble"
+            case .black: return "blackBubble"
+            }
+        }
 }
 
 struct Bubble: Identifiable {
     let id = UUID()
     let color: BubbleColor
     let radius: CGFloat
-    let position: CGPoint
+    var position: CGPoint
     var remainingTime: Int
+    var scale: CGFloat = 1.0
 
     var baseScore: Int {
         return color.point
     }
 }
+
 extension BubbleColor {
     static func weightedRandom() -> BubbleColor {
         let pool: [BubbleColor] = Array(repeating: .red, count: 40) +
@@ -53,4 +63,3 @@ extension BubbleColor {
         return pool.randomElement()!
     }
 }
-

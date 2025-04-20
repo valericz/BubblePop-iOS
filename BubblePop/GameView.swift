@@ -7,10 +7,19 @@ struct GameView: View {
     @State private var score: Int = 0
     @State private var isGameOver = false
     @State private var lastPoppedColor: BubbleColor?
+    @State private var showGameOver = false
     @State private var gameAreaSize: CGSize = .zero
     @State private var isViewAppeared = false
-    @State private var resetCount = 0 // Add a counter to force resets
-    @Environment(\.dismiss) private var dismiss // Use the standard dismiss environment
+    @State private var resetCount = 0 // Add a counter for force resets
+    @State private var isPaused = false // Track if game is paused
+    @State private var isSystemPaused = false // Track if pause was caused by system
+    @State private var currentFingerPosition: CGPoint = .zero
+    @State private var isFingerOnScreen: Bool = false
+    @State private var animatingBubbleID: UUID? = nil
+    @State private var animationPhase: Int = 0 // 0: none, 1: shrink, 2: expand+fade
+    @Environment(\.presentationMode) private var presentationMode
+    @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var navigationState: NavigationState
     
     var playerName: String
     var gameTime: Int
@@ -26,37 +35,67 @@ struct GameView: View {
     
     var body: some View {
         VStack {
+            // Header with score and buttons
             HStack {
+                // Home button
                 Button(action: {
-                    // Return to main menu
-                    NotificationCenter.default.post(name: NSNotification.Name("ReturnToMainMenu"), object: nil)
-                    dismiss()
+                    // Signal to return to root view
+                    navigationState.returnToRoot = true
+                    presentationMode.wrappedValue.dismiss()
                 }) {
                     Image(systemName: "house.fill")
-                        .font(.title2)
-                        .padding(10)
-                        .foregroundColor(.white)
-                        .background(Color.blue)
-                        .clipShape(Circle())
+                        .font(.title)
+                        .foregroundColor(.blue)
+                        .padding()
                 }
-                .padding(.leading)
                 
                 Spacer()
+                
+                Text("Score: \(score)")
+                    .font(.title2)
+                    .bold()
+                
+                Spacer()
+                
+                // Pause button
+                Button(action: {
+                    togglePause()
+                }) {
+                    Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                        .font(.title)
+                        .foregroundColor(.blue)
+                        .padding()
+                }
             }
+            .padding(.horizontal)
             
             Text("Hello, \(playerName)!")
-                .font(.largeTitle)
-                .padding()
-            
-            Text("Your current score is: \(score)")
-                .padding()
+                .font(.title2)
             
             Text("Time Left: \(remainingTime) seconds")
-                .padding()
+                .font(.title3)
+                .padding(.bottom)
             
             // Game area with fixed aspect ratio
             ZStack {
                 Color.clear
+                    .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        if isGameOver { return }
+                                        
+                                        // Update finger position
+                                        currentFingerPosition = value.location
+                                        isFingerOnScreen = true
+                                        
+                                        // Check if any bubbles are touched
+                                        checkForBubbleTouch()
+                                    }
+                                    .onEnded { _ in
+                                        isFingerOnScreen = false
+                                    }
+                            )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(
                         GeometryReader { geo in
@@ -78,28 +117,63 @@ struct GameView: View {
                 // Draw bubbles only if we have a valid game area
                 if gameAreaSize != .zero {
                     ForEach(bubbles) { bubble in
-                        Circle()
-                            .fill(bubble.color.color)
+                        Image(bubble.color.imageName)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
                             .frame(width: bubble.radius * 2, height: bubble.radius * 2)
                             .position(bubble.position)
                             .onTapGesture {
-                                if isGameOver { return }
-                                bubbles.removeAll { $0.id == bubble.id }
                                 
-                                let gainedScore: Int
-                                if let lastColor = lastPoppedColor, lastColor == bubble.color {
-                                    gainedScore = Int(ceil(Double(bubble.baseScore) * 1.5))
-                                } else {
-                                    gainedScore = bubble.baseScore
-                                }
-                                
-                                score += gainedScore
-                                lastPoppedColor = bubble.color
-                                
-                                // Create one more bubble with strict bounds checking
-                                let newBubbles = generateNonOverlappingBubbles(count: 1, in: gameAreaSize, existing: bubbles)
-                                bubbles += newBubbles
-                            }
+                                burstBubble(bubble)}
+                    }
+                }
+                
+                // Pause overlay
+                if isPaused {
+                    Color.black.opacity(0.5)
+                        .edgesIgnoringSafeArea(.all)
+                    
+                    VStack(spacing: 20) {
+                        Text("GAME PAUSED")
+                            .font(.largeTitle)
+                            .bold()
+                            .foregroundColor(.white)
+                        
+                        if isSystemPaused {
+                            Text("App was interrupted")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.bottom, 10)
+                        }
+                        
+                        Button(action: {
+                            isSystemPaused = false
+                            togglePause()
+                        }) {
+                            Text("Resume")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(width: 200)
+                                .background(Color.blue)
+                                .cornerRadius(10)
+                        }
+                        
+                        Button(action: {
+                            // Return to home screen
+                            navigationState.returnToRoot = true
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Text("Main Menu")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(width: 200)
+                                .background(Color.red)
+                                .cornerRadius(10)
+                        }
                     }
                 }
             }
@@ -117,8 +191,130 @@ struct GameView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .fullScreenCover(isPresented: $isGameOver) {
+        .fullScreenCover(isPresented: $isGameOver, onDismiss: {
+            // When returning from GameOverView, reset the game
+            print("🔄 GameOverView dismissed, resetting game")
+            resetGame(forceReset: true)
+        }) {
             GameOverView(playerName: playerName, score: score)
+                .environmentObject(navigationState)
+        }
+        .onChange(of: navigationState.returnToRoot) { newValue in
+            if newValue {
+                // If we need to return to root, dismiss this view
+                presentationMode.wrappedValue.dismiss()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetGame"))) { _ in
+            resetGame(forceReset: true)
+        }
+        // Add this handler for app state changes
+        .onChange(of: scenePhase) { newPhase in
+            handleScenePhaseChange(newPhase)
+        }
+    }
+    
+
+    private func checkForBubbleTouch() {
+        guard isFingerOnScreen else { return }
+        
+        // Create a local copy to avoid modifying the array while iterating
+        var bubblesRemaining = bubbles
+        var bubblesToRemove: [UUID] = []
+        
+        for bubble in bubblesRemaining {
+            let distance = hypot(bubble.position.x - currentFingerPosition.x,
+                                bubble.position.y - currentFingerPosition.y)
+            
+            // If finger is within bubble radius, burst it
+            if distance <= bubble.radius {
+                bubblesToRemove.append(bubble.id)
+                burstBubble(bubble)
+            }
+        }
+    }
+
+    // Add this function to handle the bursting logic
+    private func burstBubble(_ bubble: Bubble) {
+        if isGameOver { return }
+        
+        // Remove this bubble
+        bubbles.removeAll { $0.id == bubble.id }
+        
+        // Calculate score
+        let gainedScore: Int
+        if let lastColor = lastPoppedColor, lastColor == bubble.color {
+            gainedScore = Int(ceil(Double(bubble.baseScore) * 1.5))
+        } else {
+            gainedScore = bubble.baseScore
+        }
+        
+        score += gainedScore
+        lastPoppedColor = bubble.color
+        
+        // Add a new bubble
+        let newBubbles = generateNonOverlappingBubbles(count: 1, in: gameAreaSize, existing: bubbles)
+        bubbles += newBubbles
+    }
+    
+    // New method to handle scene phase changes
+    private func handleScenePhaseChange(_ newPhase: ScenePhase) {
+        print("📱 Scene phase changed to: \(newPhase)")
+        
+        if newPhase == .active {
+            // App becomes active again
+            if isSystemPaused {
+                // Don't automatically resume - let user manually resume
+                print("🔄 App returning to foreground, staying paused")
+            }
+        } else if newPhase == .inactive || newPhase == .background {
+            // App goes to background or becomes inactive
+            if !isPaused && !isGameOver {
+                print("⏸️ Auto-pausing game due to app state change")
+                isSystemPaused = true
+                isPaused = true
+                stopGame()
+            }
+        }
+    }
+    
+    private func togglePause() {
+        isPaused.toggle()
+        
+        if isPaused {
+            // Pause the game
+            timer?.invalidate()
+            timer = nil
+        } else {
+            // Resume the game
+            startTimer()
+        }
+    }
+    
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if remainingTime > 0 {
+                remainingTime -= 1
+            }
+            
+            var updatedBubbles = bubbles.map { bubble -> Bubble? in
+                var b = bubble
+                b.remainingTime -= 1
+                return b.remainingTime > 0 ? b : nil
+            }.compactMap { $0 }
+            
+            let countToAdd = maxBubbles - updatedBubbles.count
+            if countToAdd > 0 && gameAreaSize != .zero {
+                let newBubbles = generateNonOverlappingBubbles(count: countToAdd, in: gameAreaSize, existing: updatedBubbles)
+                updatedBubbles += newBubbles
+            }
+            bubbles = updatedBubbles
+            
+            if remainingTime == 0 {
+                timer?.invalidate()
+                isGameOver = true
+                showGameOver = true
+            }
         }
     }
     
@@ -147,6 +343,9 @@ struct GameView: View {
         score = 0
         remainingTime = gameTime
         isGameOver = false
+        showGameOver = false
+        isPaused = false
+        isSystemPaused = false
         lastPoppedColor = nil
         bubbles = []
         
@@ -160,32 +359,15 @@ struct GameView: View {
         bubbles = generateNonOverlappingBubbles(count: maxBubbles, in: gameAreaSize)
         
         // Start the timer
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if remainingTime > 0 {
-                remainingTime -= 1
-            }
-            
-            var updatedBubbles = bubbles.map { bubble -> Bubble? in
-                var b = bubble
-                b.remainingTime -= 1
-                return b.remainingTime > 0 ? b : nil
-            }.compactMap { $0 }
-            
-            let countToAdd = maxBubbles - updatedBubbles.count
-            if countToAdd > 0 && gameAreaSize != .zero {
-                let newBubbles = generateNonOverlappingBubbles(count: countToAdd, in: gameAreaSize, existing: updatedBubbles)
-                updatedBubbles += newBubbles
-            }
-            bubbles = updatedBubbles
-            
-            if remainingTime == 0 {
-                timer?.invalidate()
-                isGameOver = true
-            }
-        }
+        startTimer()
     }
     
+    // Rest of your code remains the same
+    // ...
+}
+    
     func generateNonOverlappingBubbles(count: Int, in size: CGSize, existing: [Bubble] = []) -> [Bubble] {
+        // Original bubble generation code remains the same
         var newBubbles: [Bubble] = []
         var attempts = 0
         let maxAttempts = 100
@@ -247,7 +429,7 @@ struct GameView: View {
         print("📊 Generated \(newBubbles.count)/\(count) bubbles in \(attempts) attempts")
         return newBubbles
     }
-}
+
 
 // Helper to get the size of the game area
 struct SizePreferenceKey: PreferenceKey {

@@ -10,88 +10,83 @@ import SwiftUI
 struct GameOverView: View {
     var playerName: String
     var score: Int
-    @StateObject private var highScoreViewModel = HighScoreViewModel()
-    @State private var showScoreboard = false
     @Environment(\.dismiss) private var dismiss
-    @State private var returnToMainMenu = false
+    @State private var showScoreboard = false
+    @EnvironmentObject private var navigationState: NavigationState
     
     var body: some View {
-        VStack(spacing: 25) {
+        VStack(spacing: 30) {
             Text("Game Over")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .padding()
             
-            Image(systemName: "trophy.fill")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 80, height: 80)
-                .foregroundColor(.yellow)
+            Text("Time's up")
+                .font(.title2)
             
             Text("You scored \(score) points, \(playerName)!")
                 .font(.title2)
-                .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
                 .padding()
             
-            // Check if this is a new high score
-            if let topScore = highScoreViewModel.scores.first?.score, score > topScore {
-                Text("🎉 NEW HIGH SCORE! 🎉")
-                    .font(.headline)
-                    .foregroundColor(.orange)
-                    .padding(.bottom)
-            }
-            
-            HStack(spacing: 20) {
-                Button(action: {
-                    // Post notification to return to main menu
-                    NotificationCenter.default.post(name: NSNotification.Name("ReturnToMainMenu"), object: nil)
-                    dismiss()
-                }) {
-                    HStack {
-                        Image(systemName: "play.fill")
-                        Text("Play Again")
-                    }
+            // Play Again button
+            Button(action: {
+                // Dismiss this view to return to the game
+                dismiss()
+            }) {
+                Text("Play Again")
+                    .font(.title2)
+                    .fontWeight(.bold)
                     .foregroundColor(.white)
                     .padding()
-                    .frame(width: 150)
+                    .frame(minWidth: 200)
                     .background(Color.blue)
                     .cornerRadius(10)
-                }
-                
-                Button(action: {
-                    showScoreboard = true
-                }) {
-                    HStack {
-                        Image(systemName: "list.number")
-                        Text("View Scoreboard")
-                    }
+            }
+            .padding(.top)
+            
+            // View Scoreboard button
+            Button(action: {
+                // Show the scoreboard
+                showScoreboard = true
+            }) {
+                Text("View Scoreboard")
+                    .font(.title2)
+                    .fontWeight(.bold)
                     .foregroundColor(.white)
                     .padding()
-                    .frame(width: 180)
+                    .frame(minWidth: 200)
                     .background(Color.purple)
                     .cornerRadius(10)
-                }
+            }
+            
+            // Return to Main Menu button
+            Button(action: {
+                // Signal to return to root view
+                navigationState.returnToRoot = true
+                dismiss()
+            }) {
+                Text("Return to Main Menu")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+                    .padding()
             }
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            LinearGradient(gradient: Gradient(colors: [Color.white, Color.blue.opacity(0.2)]),
-                           startPoint: .top,
-                           endPoint: .bottom)
-                .edgesIgnoringSafeArea(.all)
-        )
+        .background(Color(.systemBackground))
+        .fullScreenCover(isPresented: $showScoreboard) {
+            ScoreBoardView()
+                .environmentObject(navigationState)
+        }
         .onAppear {
             // Save the score when the view appears
-            highScoreViewModel.saveScore(name: playerName, score: score)
-        }
-        .fullScreenCover(isPresented: $showScoreboard) {
-            HighScoreView()
+            let highScoreVM = HighScoreViewModel()
+            highScoreVM.saveScore(name: playerName, score: score)
         }
     }
 }
 
 #Preview {
-    GameOverView(playerName: "AirVendor", score: 123)
+    GameOverView(playerName: "Player", score: 123)
+        .environmentObject(NavigationState())
 }

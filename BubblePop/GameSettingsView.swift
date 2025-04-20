@@ -26,9 +26,12 @@ struct SliderTickMarksView: View {
 struct GameSettingsView: View {
     @Binding var playerName: String
     @ObservedObject var highScoreViewModel = HighScoreViewModel()
-    @State var countDownInput : String = ""
+    @State var countDownInput: String = ""
     @State private var countdownValue: Double = 60  // Default to 60 seconds
     @State private var numberOfBubbles: Double = 15  // Default to 15 bubbles
+    @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var navigationState: NavigationState
+    @State private var showGameView = false
     
     // Minimum requirements
     private let minTime = 5
@@ -49,6 +52,23 @@ struct GameSettingsView: View {
     
     var body: some View {
         VStack {
+            // Add a custom back button
+            HStack {
+                Button(action: {
+                    // Go back to the main menu
+                    navigationState.returnToRoot = true
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                        Text("Back to Main Menu")
+                    }
+                    .foregroundColor(.blue)
+                    .padding()
+                }
+                Spacer()
+            }
+            
             Label("Settings", systemImage: "gear")
                 .foregroundStyle(.purple)
                 .font(.title)
@@ -106,15 +126,10 @@ struct GameSettingsView: View {
             Spacer()
             
             // Start Game Button
-            NavigationLink(
-                destination: GameView(
-                    playerName: playerName,
-                    gameTime: max(Int(countdownValue), minTime),
-                    maxBubbles: max(Int(numberOfBubbles), minBubbles)
-                )
-            )
-            
-            {
+            Button(action: {
+                // Set flag to show game view
+                showGameView = true
+            }) {
                 Text("Start Game")
                     .frame(minWidth: 200)
                     .padding()
@@ -130,13 +145,22 @@ struct GameSettingsView: View {
                     .font(.caption)
                     .padding(.top, 4)
             }
-            
         }
         .padding()
+        .navigationBarBackButtonHidden(true)
+        .fullScreenCover(isPresented: $showGameView) {
+            GameView(
+                playerName: playerName,
+                gameTime: max(Int(countdownValue), minTime),
+                maxBubbles: max(Int(numberOfBubbles), minBubbles)
+            )
+            .environmentObject(navigationState)
+        }
+        .onChange(of: navigationState.returnToRoot) { newValue in
+            if newValue {
+                // Dismiss this view when return to root is requested
+                presentationMode.wrappedValue.dismiss()
+            }
+        }
     }
-}
-
-
-#Preview {
-    GameSettingsView(playerName: .constant("Test Player"))
 }
